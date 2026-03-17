@@ -33,32 +33,6 @@ function nextId(): number {
   return current;
 }
 
-// ─── AUTH / CUSTOMERS ───────────────────────────────────────
-
-export async function registerCustomer(payload: RegisterPayload): Promise<Customer> {
-  await delay();
-  const customers = getStore<Customer>(KEYS.customers);
-  if (customers.find((c) => c.email === payload.email)) {
-    throw new Error('Email already registered');
-  }
-  const customer: Customer = { id: nextId(), ...payload };
-  customers.push(customer);
-  setStore(KEYS.customers, customers);
-  return customer;
-}
-
-export async function loginCustomer(payload: LoginPayload): Promise<AuthResponse> {
-  await delay();
-  const customers = getStore<Customer>(KEYS.customers);
-  const customer = customers.find((c) => c.email === payload.email && c.password === payload.password);
-  if (!customer) throw new Error('Invalid email or password');
-  return {
-    token: `mock-token-${customer.id}-${Date.now()}`,
-    customerId: customer.id,
-    name: customer.name,
-    email: customer.email,
-  };
-}
 
 // ─── ACCOUNTS ───────────────────────────────────────────────
 

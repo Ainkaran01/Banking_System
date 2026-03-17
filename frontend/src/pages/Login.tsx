@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { loginCustomer } from '@/services/mockApi';
+import { loginCustomer } from '@/services/authService';
 import { useAuth } from '@/context/AuthContext';
 import FormInput from '@/components/FormInput';
 import Alert from '@/components/Alert';

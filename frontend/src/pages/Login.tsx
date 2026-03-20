@@ -30,7 +30,7 @@ const Login: React.FC = () => {
     setAlert(null);
     try {
       const data = await loginCustomer(form);
-      login(data.token || '', data.customerId, data.name || data.email);
+      login(data.token || '', data.customerId || data.id, data.name || data.email);
       navigate('/dashboard');
     } catch (err: any) {
       setAlert({ type: 'error', message: err.message || 'Invalid credentials' });

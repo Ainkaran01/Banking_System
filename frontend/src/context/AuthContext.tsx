@@ -19,6 +19,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const token = localStorage.getItem('token');
     const customerId = localStorage.getItem('customerId');
     const customerName = localStorage.getItem('customerName') || '';
+    console.log(customerId);
     return {
       isAuthenticated: !!token || !!customerId,
       customerId: customerId ? parseInt(customerId) : null,

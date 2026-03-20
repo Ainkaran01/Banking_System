@@ -1,10 +1,18 @@
-import type { Customer, RegisterPayload, LoginPayload, AuthResponse } from '@/types/Customer';
-import type { Account, CreateAccountPayload } from '@/types/Account';
+import type { Account, CreateAccountPayload, RecipientLookup } from '@/types/Account';
 import type { Transaction, DepositPayload, WithdrawPayload, TransferPayload } from '@/types/Transaction';
 import type { Loan, LoanApplicationPayload } from '@/types/Loan';
+import api from './api';
 
 // Helper to simulate network delay
 const delay = (ms = 500) => new Promise((r) => setTimeout(r, ms));
+
+const extractErrorMessage = (error: any): string => {
+  if (error?.response?.data?.message) return error.response.data.message;
+  if (Array.isArray(error?.response?.data?.details) && error.response.data.details.length > 0) {
+    return error.response.data.details[0];
+  }
+  return error?.message || 'Request failed';
+};
 
 // LocalStorage keys
 const KEYS = {
@@ -37,23 +45,90 @@ function nextId(): number {
 // ─── ACCOUNTS ───────────────────────────────────────────────
 
 export async function createAccount(payload: CreateAccountPayload): Promise<Account> {
-  await delay();
-  const accounts = getStore<Account>(KEYS.accounts);
-  const account: Account = {
-    id: nextId(),
-    customerId: payload.customerId,
-    accountType: payload.accountType as Account['accountType'],
-    balance: 0,
-    createdAt: new Date().toISOString(),
-  };
-  accounts.push(account);
-  setStore(KEYS.accounts, accounts);
-  return account;
+  try {
+    const body: Record<string, unknown> = {
+      customerId: payload.customerId,
+      accountType: payload.accountType,
+    };
+    if (payload.depositPeriod) body.depositPeriod = payload.depositPeriod;
+    if (payload.initialDeposit !== undefined) body.initialDeposit = payload.initialDeposit;
+
+    const { data } = await api.post('/accounts', body);
+    return {
+      id: data.id,
+      accountNumber: data.accountNumber,
+      customerId: data.customerId,
+      accountType: data.accountType,
+      balance: Number(data.balance),
+      createdAt: data.createdAt,
+      maturityDate: data.maturityDate ?? undefined,
+      interestRate: data.interestRate !== null ? Number(data.interestRate) : undefined,
+      depositPeriod: data.depositPeriod ?? undefined,
+      depositPeriodLabel: data.depositPeriodLabel ?? undefined,
+      initialDeposit: data.initialDeposit !== null ? Number(data.initialDeposit) : undefined,
+      maturityAmount: data.maturityAmount !== null ? Number(data.maturityAmount) : undefined,
+    };
+  } catch (error: any) {
+    throw new Error(extractErrorMessage(error));
+  }
 }
 
 export async function getAccountsByCustomer(customerId: number): Promise<Account[]> {
-  await delay(300);
-  return getStore<Account>(KEYS.accounts).filter((a) => a.customerId === customerId);
+  try {
+    const { data } = await api.get(`/accounts/customer/${customerId}`);
+    return data.map((item: any) => ({
+      id: item.id,
+      accountNumber: item.accountNumber,
+      customerId: item.customerId,
+      accountType: item.accountType,
+      balance: Number(item.balance),
+      createdAt: item.createdAt,
+      maturityDate: item.maturityDate ?? undefined,
+      interestRate: item.interestRate !== null ? Number(item.interestRate) : undefined,
+      depositPeriod: item.depositPeriod ?? undefined,
+      depositPeriodLabel: item.depositPeriodLabel ?? undefined,
+      initialDeposit: item.initialDeposit !== null ? Number(item.initialDeposit) : undefined,
+      maturityAmount: item.maturityAmount !== null ? Number(item.maturityAmount) : undefined,
+    }));
+  } catch (error: any) {
+    throw new Error(extractErrorMessage(error));
+  }
+}
+
+export async function getAllAccounts(): Promise<Account[]> {
+  try {
+    const { data } = await api.get('/accounts');
+    return data.map((item: any) => ({
+      id: item.id,
+      accountNumber: item.accountNumber,
+      customerId: item.customerId,
+      accountType: item.accountType,
+      balance: Number(item.balance),
+      createdAt: item.createdAt,
+      maturityDate: item.maturityDate ?? undefined,
+      interestRate: item.interestRate !== null ? Number(item.interestRate) : undefined,
+      depositPeriod: item.depositPeriod ?? undefined,
+      depositPeriodLabel: item.depositPeriodLabel ?? undefined,
+      initialDeposit: item.initialDeposit !== null ? Number(item.initialDeposit) : undefined,
+      maturityAmount: item.maturityAmount !== null ? Number(item.maturityAmount) : undefined,
+    }));
+  } catch (error: any) {
+    throw new Error(extractErrorMessage(error));
+  }
+}
+
+export async function lookupRecipientByAccountNumber(accountNumber: string): Promise<RecipientLookup> {
+  try {
+    const { data } = await api.get(`/accounts/lookup/${accountNumber}`);
+    return {
+      accountId: data.accountId,
+      accountNumber: data.accountNumber,
+      customerName: data.customerName,
+      customerId: data.customerId,
+    };
+  } catch (error: any) {
+    throw new Error(extractErrorMessage(error));
+  }
 }
 
 // ─── TRANSACTIONS ───────────────────────────────────────────

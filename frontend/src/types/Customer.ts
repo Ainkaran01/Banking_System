@@ -19,6 +19,7 @@ export interface LoginPayload {
 }
 
 export interface AuthResponse {
+  id: number;
   token?: string;
   customerId: number;
   name: string;

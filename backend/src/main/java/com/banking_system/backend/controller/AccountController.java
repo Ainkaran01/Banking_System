@@ -5,7 +5,7 @@ import com.banking_system.backend.dto.CreateAccountRequest;
 import com.banking_system.backend.dto.RecipientLookupResponse;
 import com.banking_system.backend.service.AccountService;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
@@ -13,10 +13,14 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/accounts")
-@RequiredArgsConstructor
 public class AccountController {
 
     private final AccountService accountService;
+
+    @Autowired
+    public AccountController(AccountService accountService) {
+        this.accountService = accountService;
+    }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)

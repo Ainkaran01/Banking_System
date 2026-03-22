@@ -13,6 +13,11 @@ const extractErrorMessage = (error: any): string => {
   }
   return error?.message || 'Request failed';
 };
+const mapTransactionType = (type: string): Transaction['type'] => {
+  if (type === 'DEPOSIT') return 'DEPOSIT';
+  if (type === 'WITHDRAWAL') return 'WITHDRAWAL';
+  return 'TRANSFER';
+};
 
 // LocalStorage keys
 const KEYS = {
@@ -133,80 +138,101 @@ export async function lookupRecipientByAccountNumber(accountNumber: string): Pro
 
 // ─── TRANSACTIONS ───────────────────────────────────────────
 
-function addTransaction(tx: Omit<Transaction, 'id' | 'date'>): Transaction {
-  const transactions = getStore<Transaction>(KEYS.transactions);
-  const full: Transaction = { ...tx, id: nextId(), date: new Date().toISOString() };
-  transactions.push(full);
-  setStore(KEYS.transactions, transactions);
-  return full;
-}
-
 export async function deposit(payload: DepositPayload): Promise<Transaction> {
-  await delay();
-  const accounts = getStore<Account>(KEYS.accounts);
-  const idx = accounts.findIndex((a) => a.id === payload.accountId);
-  if (idx === -1) throw new Error('Account not found');
-  accounts[idx].balance += payload.amount;
-  setStore(KEYS.accounts, accounts);
-  return addTransaction({ accountId: payload.accountId, type: 'DEPOSIT', amount: payload.amount });
+  try {
+    const { data } = await api.post('/transactions/deposit', payload);
+    return {
+      id: data.id,
+      accountId: data.accountId,
+      amount: Number(data.amount),
+      type: mapTransactionType(data.type),
+      toAccountId: data.relatedAccountId ?? undefined,
+      date: data.createdAt,
+    };
+  } catch (error: any) {
+    throw new Error(extractErrorMessage(error));
+  }
 }
 
 export async function withdraw(payload: WithdrawPayload): Promise<Transaction> {
-  await delay();
-  const accounts = getStore<Account>(KEYS.accounts);
-  const idx = accounts.findIndex((a) => a.id === payload.accountId);
-  if (idx === -1) throw new Error('Account not found');
-  if (accounts[idx].balance < payload.amount) throw new Error('Insufficient balance');
-  accounts[idx].balance -= payload.amount;
-  setStore(KEYS.accounts, accounts);
-  return addTransaction({ accountId: payload.accountId, type: 'WITHDRAWAL', amount: payload.amount });
+  try {
+    const { data } = await api.post('/transactions/withdraw', payload);
+    return {
+      id: data.id,
+      accountId: data.accountId,
+      amount: Number(data.amount),
+      type: mapTransactionType(data.type),
+      toAccountId: data.relatedAccountId ?? undefined,
+      date: data.createdAt,
+    };
+  } catch (error: any) {
+    throw new Error(extractErrorMessage(error));
+  }
 }
 
 export async function transfer(payload: TransferPayload): Promise<Transaction> {
-  await delay();
-  const accounts = getStore<Account>(KEYS.accounts);
-  const fromIdx = accounts.findIndex((a) => a.id === payload.fromAccountId);
-  const toIdx = accounts.findIndex((a) => a.id === payload.toAccountId);
-  if (fromIdx === -1) throw new Error('Source account not found');
-  if (toIdx === -1) throw new Error('Destination account not found');
-  if (accounts[fromIdx].balance < payload.amount) throw new Error('Insufficient balance');
-  accounts[fromIdx].balance -= payload.amount;
-  accounts[toIdx].balance += payload.amount;
-  setStore(KEYS.accounts, accounts);
-  return addTransaction({
-    accountId: payload.fromAccountId,
-    type: 'TRANSFER',
-    amount: payload.amount,
-    toAccountId: payload.toAccountId,
-  });
+  try {
+    const { data } = await api.post('/transactions/transfer', payload);
+    return {
+      id: data.id,
+      accountId: data.accountId,
+      amount: Number(data.amount),
+      type: 'TRANSFER',
+      toAccountId: data.relatedAccountId ?? undefined,
+      date: data.createdAt,
+    };
+  } catch (error: any) {
+    throw new Error(extractErrorMessage(error));
+  }
 }
 
 export async function getTransactionsByAccount(accountId: number): Promise<Transaction[]> {
-  await delay(300);
-  return getStore<Transaction>(KEYS.transactions)
-    .filter((t) => t.accountId === accountId || t.toAccountId === accountId)
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  try {
+    const { data } = await api.get(`/transactions/${accountId}`);
+    return data.map((item: any) => ({
+      id: item.id,
+      accountId: item.accountId,
+      amount: Number(item.amount),
+      type: mapTransactionType(item.type),
+      toAccountId: item.relatedAccountId ?? undefined,
+      date: item.createdAt,
+    }));
+  } catch (error: any) {
+    throw new Error(extractErrorMessage(error));
+  }
 }
+
 
 // ─── LOANS ──────────────────────────────────────────────────
 
 export async function applyLoan(payload: LoanApplicationPayload): Promise<Loan> {
-  await delay();
-  const loans = getStore<Loan>(KEYS.loans);
-  const loan: Loan = {
-    id: nextId(),
-    customerId: payload.customerId,
-    loanType: payload.loanType,
-    amount: payload.amount,
-    status: 'PENDING',
-    appliedAt: new Date().toISOString(),
-  };
-  loans.push(loan);
-  setStore(KEYS.loans, loans);
-  return loan;
+  try {
+    const { data } = await api.post('/loans/apply', payload);
+    return {
+      id: data.id,
+      customerId: data.customerId,
+      loanType: data.loanType,
+      amount: Number(data.amount),
+      status: data.status,
+      appliedAt: data.appliedAt,
+    };
+  } catch (error: any) {
+    throw new Error(extractErrorMessage(error));
+  }
 }
 
 export async function getLoansByCustomer(customerId: number): Promise<Loan[]> {
-  await delay(300);
-  return getStore<Loan>(KEYS.loans).filter((l) => l.customerId === customerId);
+  try {
+    const { data } = await api.get(`/loans/customer/${customerId}`);
+    return data.map((item: any) => ({
+      id: item.id,
+      customerId: item.customerId,
+      loanType: item.loanType,
+      amount: Number(item.amount),
+      status: item.status,
+      appliedAt: item.appliedAt,
+    }));
+  } catch (error: any) {
+    throw new Error(extractErrorMessage(error));
+  }
 }

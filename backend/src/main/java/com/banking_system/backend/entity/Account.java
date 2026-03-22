@@ -50,6 +50,14 @@ public abstract class Account {
 
     public abstract BigDecimal getMinimumBalance();
 
+    public void setAccountNumber(String accountNumber) {
+        this.accountNumber = accountNumber;
+    }
+
+    public String getAccountNumber() {
+        return this.accountNumber;
+    }
+
     public boolean canWithdraw(BigDecimal amount) {
         return balance.subtract(amount).compareTo(getMinimumBalance()) >= 0;
     }

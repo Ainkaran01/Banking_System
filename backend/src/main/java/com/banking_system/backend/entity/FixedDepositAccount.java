@@ -42,6 +42,14 @@ public class FixedDepositAccount extends Account {
         return maturityDate != null && !maturityDate.isAfter(LocalDate.now());
     }
 
+    public void setDepositPeriod(DepositPeriod depositPeriod) {
+        this.depositPeriod = depositPeriod;
+    }
+
+    public DepositPeriod getDepositPeriod() {
+        return this.depositPeriod;
+    }
+
     @Override
     public boolean canWithdraw(BigDecimal amount) {
         if (!isMatured()) {

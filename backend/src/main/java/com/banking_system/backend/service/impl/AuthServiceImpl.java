@@ -20,9 +20,15 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public Customer register(Customer customer) {
 
-        // encrypt password
+        // CHECK IF EMAIL ALREADY EXISTS
+        if (customerRepository.existsByEmail(customer.getEmail())) {
+            throw new RuntimeException("Email already registered");
+        }
+
+        // ENCRYPT PASSWORD
         customer.setPassword(passwordEncoder.encode(customer.getPassword()));
 
+        // SAVE
         return customerRepository.save(customer);
     }
 
